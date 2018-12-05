@@ -49,7 +49,6 @@ class Sniffer:
 
     @staticmethod
     def enable_ip_forwarding():
-        print("[*] Enabling IP forwarding")
         if platform.system() == 'Darwin':
             os.system("sysctl -w net.inet.ip.forwarding=1")
         elif platform.system() == 'Linux':
