@@ -1,5 +1,14 @@
-# Features
-Intercepts the traffic between router and user (MITM attack) and sniffs the traffic. Saves as pcap file. 
+# Automated ARP Poison Tool
+Performs man in the middle attack to the specified target IP and saves the intercepted network traffic as ".pcap" file then analyzes it to extract visited websites, possible credentials, target information etc.
 
-# Soon
-Analyzes captured packets
+It has to run as superuser because it has to change some system configs like IP forwarding.
+
+It does NOT support HTTPS 
+
+
+# Usage
+pip3 install -r requirements.txt
+sudo python3 main.py
+
+# Test
+Tested on macOS Mojave 10.14 and Ubuntu 16.04

